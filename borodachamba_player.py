@@ -17,6 +17,7 @@ import math
 import os
 import random
 import signal
+import string
 import subprocess
 import time
 from dataclasses import dataclass
@@ -431,6 +432,7 @@ class App:
         self.scroll = 0
         self.browser_path = Path.cwd()
         self.browser_items: list[Path] = []
+        self.browser_drives: list[Path] = []
         self.browser_marked: set[Path] = set()
         self.browser_selected = 0
         self.browser_scroll = 0
@@ -639,14 +641,21 @@ class App:
         return added
 
     def refresh_browser(self) -> None:
+        self.browser_drives = []
         try:
             entries = list(self.browser_path.iterdir())
         except OSError as exc:
             self.status = str(exc)
             entries = []
+        if os.name == "nt":
+            for letter in string.ascii_uppercase:
+                drive = Path(f"{letter}:/")
+                if drive.exists():
+                    self.browser_drives.append(drive)
+            self.browser_drives.sort(key=lambda p: str(p).lower())
         dirs = sorted([p for p in entries if p.is_dir() and not p.name.startswith(".")], key=lambda p: p.name.lower())
         files = sorted([p for p in entries if p.is_file() and p.suffix.lower() in AUDIO_EXTS], key=lambda p: p.name.lower())
-        self.browser_items = [self.browser_path, self.browser_path.parent] + dirs + files
+        self.browser_items = [self.browser_path, self.browser_path.parent] + self.browser_drives + dirs + files
         visible_paths = {safe_resolve(item) for item in self.browser_items}
         self.browser_marked = {path for path in self.browser_marked if path in visible_paths}
         self.browser_selected = min(self.browser_selected, max(0, len(self.browser_items) - 1))
@@ -1501,6 +1510,9 @@ class App:
             elif idx == 1:
                 marker = "../"
                 icon = "DIR "
+            elif item in self.browser_drives:
+                marker = f"{item.drive}  open drive"
+                icon = "DRV "
             else:
                 marker = f"{item.name}/" if item.is_dir() else item.name
                 icon = "DIR " if item.is_dir() else "MP3 "
