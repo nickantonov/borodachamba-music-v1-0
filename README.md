@@ -11,8 +11,8 @@
 
 ## Скриншоты
 
-- `docs/screenshots/main-ui-1.png`
-- `docs/screenshots/main-ui-2.png`
+![Main UI 1](docs/screenshots/main-ui-1.png)
+![Main UI 2](docs/screenshots/main-ui-2.png)
 
 ## Запуск
 
