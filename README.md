@@ -9,6 +9,11 @@
 - История изменений релиза: `CHANGELOG.md`
 - Подготовка релиз-пака: `RELEASE.md`
 
+## Скриншоты
+
+- `docs/screenshots/main-ui-1.png`
+- `docs/screenshots/main-ui-2.png`
+
 ## Запуск
 
 ```bash
