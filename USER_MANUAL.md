@@ -73,8 +73,7 @@ python borodachamba_player.py ~/Music/track.mp3
 
 ### Лицензия / About
 
-- `i` — About (buy link, machine code, status)
-- `k` — ввод offline license key
+- `i` — About
 
 ## 4) Файловый браузер
 
@@ -153,4 +152,11 @@ chmod +x build_portable_linux.sh
 ## 8) Версия
 
 - Product: `Borodachamba Music v1.0`
-- Copyright: `Borodachamba Studio - All Rights Reserved`
+- Copyright: `Copyright (c) Borodachamba Studio`
+- License: `GPL-3.0-only` (GNU GPL v3.0 only)
+
+## 9) Условия open-source
+
+- Можно использовать, изучать, изменять и распространять проект по условиям GNU GPLv3.
+- При распространении модифицированных версий необходимо сохранить ту же GPLv3-совместимую лицензию и исходный код.
+- Полный юридический текст: файл `LICENSE`.

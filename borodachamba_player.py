@@ -11,13 +11,10 @@ Runtime dependencies:
 from __future__ import annotations
 
 import curses
-import hashlib
-import getpass
 import json
 import locale
 import math
 import os
-import platform
 import random
 import signal
 import subprocess
@@ -49,16 +46,13 @@ LOGO = [
     r"                                   BORODACHAMBA MUSIC v1.0                                    ",
 ]
 
-COPYRIGHT_TEXT = "Borodachamba Studio - All Rights Reserved"
-BUY_LINK = "https://borodachamba.studio/player"
-LICENSE_PREFIX = "BMS1"
-DEMO_PREVIEW_SECONDS = 45.0
-ENFORCE_DEMO_LIMIT = False
+COPYRIGHT_TEXT = "Copyright (c) Borodachamba Studio"
+LICENSE_TEXT = "Licensed under GNU GPL v3.0 only"
 
 
 HELP = (
     "Space play/pause  Enter play  o open  a add  d dsp reset  D delete  c clear  "
-    "n/p next/prev  Left/Right seek  r repeat  h shuffle  m mute  u resume  v visual  i about  k key  x dsp mode  b/B bass  +/- volume  </> tone  [/] dsp  e eq  l/w playlist  t/F7/F8 theme  q quit"
+    "n/p next/prev  Left/Right seek  r repeat  h shuffle  m mute  u resume  v visual  i about  x dsp mode  b/B bass  +/- volume  </> tone  [/] dsp  e eq  l/w playlist  t/F7/F8 theme  q quit"
 )
 
 VISUAL_STYLES = [
@@ -258,7 +252,6 @@ class AudioEngine:
         dsp: int,
         dsp_mode: str,
         bass_boost: int,
-        preview_limit: float | None,
         start_at: float = 0.0,
         paused: bool = False,
     ) -> str | None:
@@ -274,8 +267,6 @@ class AudioEngine:
             "-af",
             afilter,
         ]
-        if preview_limit and preview_limit > 0:
-            cmd.extend(["-t", f"{preview_limit:.2f}"])
         if start_at > 0.5:
             cmd.extend(["-ss", f"{start_at:.2f}"])
         cmd.append(str(track.path))
@@ -462,16 +453,11 @@ class App:
         self.resume_position = 0.0
         self.resume_autoplay = True
         self.visual_style_index = 0
-        self.license_key = ""
-        self.license_valid = False
         self.about_open = False
         self.status = "Press o to open files or folders"
         self.running = True
         self.load_config()
-        self.license_valid = validate_license_key(self.license_key)
         self.load_playlist(announce=False)
-        if not self.license_valid:
-            self.status = "Press i for buy link, k to enter key"
 
     def setup(self) -> None:
         try:
@@ -565,7 +551,6 @@ class App:
         self.resume_autoplay = bool(data.get("resume_autoplay", True))
         style_idx = int(data.get("visual_style_index", 0))
         self.visual_style_index = max(0, min(style_idx, len(VISUAL_STYLES) - 1))
-        self.license_key = str(data.get("license_key", "")).strip()
 
     def save_config(self, announce: bool = True) -> None:
         try:
@@ -587,7 +572,6 @@ class App:
                 "resume_position": round(self.resume_position, 3),
                 "resume_autoplay": self.resume_autoplay,
                 "visual_style_index": self.visual_style_index,
-                "license_key": self.license_key,
             }
             CONFIG_FILE.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         except OSError:
@@ -709,7 +693,6 @@ class App:
             self.dsp,
             DSP_MODES[self.dsp_mode_index][0],
             self.bass_boost,
-            DEMO_PREVIEW_SECONDS if (ENFORCE_DEMO_LIMIT and not self.license_valid) else None,
             start_at=start_at,
             paused=paused,
         )
@@ -750,57 +733,6 @@ class App:
         self.visual_style_index = (self.visual_style_index + 1) % len(VISUAL_STYLES)
         self.save_config()
         self.status = f"Visual style: {VISUAL_STYLES[self.visual_style_index]}"
-
-    def prompt_input(self, prompt: str, max_len: int = 64) -> str | None:
-        height, width = self.screen.getmaxyx()
-        y = max(0, height - 1)
-        prompt_text = prompt[: max(1, width - 2)]
-        self.add(y, 0, " " * max(1, width - 1), color(6))
-        self.add(y, 0, prompt_text, color(6) | curses.A_BOLD)
-        x = min(width - 2, len(prompt_text))
-        self.screen.refresh()
-        previous_delay = 50
-        try:
-            curses.echo()
-        except curses.error:
-            pass
-        try:
-            curses.curs_set(1)
-        except curses.error:
-            pass
-        try:
-            self.screen.timeout(-1)
-            raw = self.screen.getstr(y, x, max_len)
-        except curses.error:
-            raw = None
-        finally:
-            try:
-                curses.noecho()
-            except curses.error:
-                pass
-            try:
-                curses.curs_set(0)
-            except curses.error:
-                pass
-            self.screen.timeout(previous_delay)
-        if raw is None:
-            return None
-        return raw.decode("utf-8", "ignore").strip()
-
-    def enter_license_key(self) -> None:
-        entered = self.prompt_input("Enter license key: ")
-        if not entered:
-            self.status = "License input cancelled"
-            return
-        self.license_key = normalize_license_key(entered)
-        self.license_valid = validate_license_key(self.license_key)
-        self.save_config()
-        if self.license_valid:
-            self.status = "License activated. Full playback unlocked"
-            if self.engine.current and self.engine.proc and self.engine.proc.poll() is None:
-                self.restart_if_active()
-        else:
-            self.status = f"Invalid key. Buy link: {BUY_LINK}"
 
     def cycle_repeat_mode(self) -> None:
         modes = ["all", "one", "off"]
@@ -940,8 +872,6 @@ class App:
         if self.about_open:
             if key in (ord("q"), 27, ord("i")):
                 self.about_open = False
-            elif key == ord("k"):
-                self.enter_license_key()
             return
         if self.browser_open:
             self.handle_browser_key(key)
@@ -985,8 +915,6 @@ class App:
             self.cycle_visual_style()
         elif key == ord("i"):
             self.about_open = True
-        elif key == ord("k"):
-            self.enter_license_key()
         elif key == ord("x"):
             self.cycle_dsp_mode()
         elif key == ord("b"):
@@ -1182,8 +1110,7 @@ class App:
             bass_text = f"bass boost: {'off' if self.bass_boost == 0 else f'+{self.bass_boost} dB'}"
             self.add(info_y + 9, x + 2, bass_text[: w - 4], color(7))
         if info_h > 11:
-            lic = "full" if self.license_valid else "not activated"
-            self.add(info_y + 10, x + 2, f"license: {lic}"[: w - 4], color(7))
+            self.add(info_y + 10, x + 2, LICENSE_TEXT[: w - 4], color(7))
         if info_h > 12:
             vis = f"visual: {VISUAL_STYLES[self.visual_style_index]}"
             self.add(info_y + 11, x + 2, vis[: w - 4], color(7))
@@ -1518,7 +1445,6 @@ class App:
             "[u] Resume",
             "[v] Visual",
             "[i] About",
-            "[k] Key",
             "[x] DSP mode",
             "[b/B] Bass",
         ]
@@ -1586,16 +1512,14 @@ class App:
         w = min(width - 6, 90)
         y = (height - h) // 2
         x = (width - w) // 2
-        self.box(y, x, h, w, " about / license ")
+        self.box(y, x, h, w, " about ")
         lines = [
             "Borodachamba Music v1.0",
             COPYRIGHT_TEXT,
+            LICENSE_TEXT,
             "",
-            f"Buy link: {BUY_LINK}",
-            f"Machine code: {machine_code()}",
-            "",
-            f"License status: {'FULL' if self.license_valid else 'NOT ACTIVATED'}",
-            "Press k to enter license key",
+            "Open-source project",
+            "Repository: github.com/nickantonov/borodachamba-music-v1-0",
             "Press i or Esc to close",
         ]
         for idx, line in enumerate(lines):
@@ -1744,43 +1668,6 @@ def color(pair: int) -> int:
     if not curses.has_colors() or pair <= 0:
         return 0
     return curses.color_pair(pair)
-
-
-def machine_fingerprint() -> str:
-    parts = [
-        platform.system(),
-        platform.machine(),
-        platform.node(),
-        getpass.getuser(),
-        str(Path.home()),
-    ]
-    raw = "|".join(part.strip().lower() for part in parts if part)
-    return hashlib.sha256(raw.encode("utf-8", "replace")).hexdigest().upper()
-
-
-def machine_code() -> str:
-    return machine_fingerprint()[:12]
-
-
-def expected_license_key() -> str:
-    digest = hashlib.sha256(
-        f"{machine_fingerprint()}|BORODACHAMBA_MUSIC_V1".encode("utf-8", "replace")
-    ).hexdigest().upper()
-    return f"{LICENSE_PREFIX}-{digest[:4]}-{digest[4:8]}-{digest[8:12]}-{digest[12:16]}"
-
-
-def normalize_license_key(value: str) -> str:
-    key = "".join(ch for ch in value.upper().strip() if ch.isalnum() or ch == "-")
-    if key.startswith(LICENSE_PREFIX + "-"):
-        return key
-    bare = "".join(ch for ch in key if ch.isalnum())
-    if len(bare) == 20 and bare.startswith(LICENSE_PREFIX):
-        return f"{bare[:4]}-{bare[4:8]}-{bare[8:12]}-{bare[12:16]}-{bare[16:20]}"
-    return key
-
-
-def validate_license_key(value: str) -> bool:
-    return normalize_license_key(value) == expected_license_key()
 
 
 def normalize_hotkey(key: int) -> int:

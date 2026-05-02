@@ -45,8 +45,7 @@ python borodachamba_player.py ~/Music/track.mp3
 - `m` - mute on/off
 - `u` - resume autoplay on/off
 - `v` - смена визуализации (10 стилей)
-- `i` - окно About + buy link
-- `k` - ввод offline license key
+- `i` - окно About
 - `+` / `-` - громкость
 - `<` / `>` - тон
 - `x` - смена DSP режима (`stereo/echo/chorus/reverb/phaser/flanger`)
@@ -64,10 +63,10 @@ python borodachamba_player.py ~/Music/track.mp3
 - `c` - очистить плейлист
 - `q` / `Esc` - выйти или закрыть браузер
 
-## Лицензия (offline)
+## License
 
-- Без ключа: плеер работает, но статус лицензии "not activated"
-- Полная версия: открой About (`i`) и введи ключ (`k`)
+Проект распространяется как open-source под лицензией `GPL-3.0-only`.
+Полный текст лицензии: `LICENSE`.
 
 ## Сохранение сессии
 
@@ -83,4 +82,4 @@ python borodachamba_player.py ~/Music/track.mp3
 
 ## Copyright
 
-Borodachamba Studio - All Rights Reserved
+Copyright (c) Borodachamba Studio

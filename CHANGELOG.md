@@ -14,3 +14,9 @@
 - Ретро VU-индикатор в стиле кассетной деки.
 - About/License окно с offline key вводом.
 - Скрипты portable сборки для Windows и Linux.
+
+## Unreleased
+
+- Проект переведен в полноценный open-source режим под `GPL-3.0-only`.
+- Удалены proprietary элементы (buy link, key activation flow, статус not activated).
+- Обновлены документация и About-экран под GNU GPL v3.0 only.
