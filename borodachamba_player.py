@@ -53,7 +53,7 @@ LICENSE_TEXT = "Licensed under GNU GPL v3.0 only"
 
 HELP = (
     "Space play/pause  Enter play  o open  a add  d dsp reset  D delete  c clear  "
-    "n/p next/prev  Left/Right seek  r repeat  h shuffle  m mute  u resume  v visual  i about  x dsp mode  b/B bass  +/- volume  </> tone  [/] dsp  e eq  l/w playlist  t/F7/F8 theme  q quit"
+    "n/p next/prev  Left/Right seek  r repeat  h shuffle  m mute  u resume  v visual  N nostalgia  i about  x dsp mode  b/B bass  +/- volume  </> tone  [/] dsp  e eq  l/w playlist  t/F7/F8 theme  q quit"
 )
 
 VISUAL_STYLES = [
@@ -67,6 +67,14 @@ VISUAL_STYLES = [
     "mirror bars",
     "retro fire",
     "orbit",
+]
+
+NOSTALGIA_PROFILES = [
+    ("off", "выкл"),
+    ("cassette", "кассета"),
+    ("cassette deck", "кассетная дека"),
+    ("reel tape", "бобинный магнитофон"),
+    ("vinyl", "пластинки"),
 ]
 
 
@@ -188,7 +196,15 @@ class AudioEngine:
         self.paused_at: float | None = None
         self.paused_total = 0.0
 
-    def build_filter(self, volume: int, tone: int, dsp: int, dsp_mode: str, bass_boost: int) -> str:
+    def build_filter(
+        self,
+        volume: int,
+        tone: int,
+        dsp: int,
+        dsp_mode: str,
+        bass_boost: int,
+        nostalgia_profile: str,
+    ) -> str:
         filters = [f"volume={max(0, volume) / 100:.2f}"]
         if bass_boost > 0:
             filters.append(f"bass=g={bass_boost}")
@@ -243,6 +259,22 @@ class AudioEngine:
             else:
                 width = 1.0 + depth * 1.6
                 filters.append(f"extrastereo=m={width:.2f}")
+        if nostalgia_profile == "cassette":
+            filters.append("highpass=f=35")
+            filters.append("lowpass=f=11800")
+            filters.append("acompressor=threshold=-21dB:ratio=1.5:attack=10:release=110:makeup=1.06")
+        elif nostalgia_profile == "deck":
+            filters.append("highpass=f=30")
+            filters.append("lowpass=f=13000")
+            filters.append("acompressor=threshold=-19dB:ratio=1.35:attack=8:release=95:makeup=1.04")
+        elif nostalgia_profile == "reel":
+            filters.append("highpass=f=28")
+            filters.append("lowpass=f=14500")
+            filters.append("acompressor=threshold=-18dB:ratio=1.25:attack=6:release=80:makeup=1.03")
+        elif nostalgia_profile == "vinyl":
+            filters.append("highpass=f=55")
+            filters.append("lowpass=f=11000")
+            filters.append("acompressor=threshold=-22dB:ratio=1.45:attack=12:release=140:makeup=1.05")
         return ",".join(filters)
 
     def play(
@@ -253,11 +285,12 @@ class AudioEngine:
         dsp: int,
         dsp_mode: str,
         bass_boost: int,
+        nostalgia_profile: str,
         start_at: float = 0.0,
         paused: bool = False,
     ) -> str | None:
         self.stop()
-        afilter = self.build_filter(volume, tone, dsp, dsp_mode, bass_boost)
+        afilter = self.build_filter(volume, tone, dsp, dsp_mode, bass_boost, nostalgia_profile)
         cmd = [
             "ffplay",
             "-nodisp",
@@ -455,6 +488,7 @@ class App:
         self.resume_position = 0.0
         self.resume_autoplay = True
         self.visual_style_index = 0
+        self.nostalgia_profile_index = 0
         self.about_open = False
         self.status = "Press o to open files or folders"
         self.running = True
@@ -481,6 +515,41 @@ class App:
             curses.use_default_colors()
             self.apply_theme()
         self.refresh_browser()
+
+    def show_boot_screen(self) -> None:
+        steps = [
+            "Initializing terminal video... OK",
+            "Loading audio engine... OK",
+            "Scanning DSP modules... OK",
+            "Warming up cassette deck... OK",
+            "Starting Borodachamba Music v1.0",
+        ]
+        duration = 1.8
+        start = time.monotonic()
+        prev_timeout = 50
+        self.screen.timeout(60)
+        try:
+            while time.monotonic() - start < duration:
+                if self.screen.getch() != -1:
+                    break
+                self.screen.erase()
+                height, width = self.screen.getmaxyx()
+                logo_y = max(1, height // 2 - 6)
+                for i, line in enumerate(LOGO[: min(len(LOGO), 7)]):
+                    self.add(logo_y + i, max(0, (width - len(line)) // 2), line[: max(1, width - 2)], color(2) | curses.A_BOLD)
+                progress = min(1.0, (time.monotonic() - start) / duration)
+                step_count = max(1, int(progress * len(steps)))
+                text_y = logo_y + 8
+                for i in range(step_count):
+                    self.add(text_y + i, max(2, width // 2 - 24), steps[i][: max(1, width - 4)], color(7))
+                self.add(text_y + len(steps) + 1, max(2, width // 2 - 24), "Press any key to skip", color(6))
+                self.screen.refresh()
+        finally:
+            self.screen.timeout(prev_timeout)
+            try:
+                curses.flushinp()
+            except curses.error:
+                pass
 
     def apply_theme(self) -> None:
         if not curses.has_colors():
@@ -553,6 +622,8 @@ class App:
         self.resume_autoplay = bool(data.get("resume_autoplay", True))
         style_idx = int(data.get("visual_style_index", 0))
         self.visual_style_index = max(0, min(style_idx, len(VISUAL_STYLES) - 1))
+        profile_idx = int(data.get("nostalgia_profile_index", 0))
+        self.nostalgia_profile_index = max(0, min(profile_idx, len(NOSTALGIA_PROFILES) - 1))
 
     def save_config(self, announce: bool = True) -> None:
         try:
@@ -574,6 +645,7 @@ class App:
                 "resume_position": round(self.resume_position, 3),
                 "resume_autoplay": self.resume_autoplay,
                 "visual_style_index": self.visual_style_index,
+                "nostalgia_profile_index": self.nostalgia_profile_index,
             }
             CONFIG_FILE.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         except OSError:
@@ -702,6 +774,7 @@ class App:
             self.dsp,
             DSP_MODES[self.dsp_mode_index][0],
             self.bass_boost,
+            NOSTALGIA_PROFILES[self.nostalgia_profile_index][0],
             start_at=start_at,
             paused=paused,
         )
@@ -742,6 +815,12 @@ class App:
         self.visual_style_index = (self.visual_style_index + 1) % len(VISUAL_STYLES)
         self.save_config()
         self.status = f"Visual style: {VISUAL_STYLES[self.visual_style_index]}"
+
+    def cycle_nostalgia_profile(self) -> None:
+        self.nostalgia_profile_index = (self.nostalgia_profile_index + 1) % len(NOSTALGIA_PROFILES)
+        self.save_config()
+        self.status = f"Ностальгия: {NOSTALGIA_PROFILES[self.nostalgia_profile_index][1]}"
+        self.schedule_reconfigure()
 
     def cycle_repeat_mode(self) -> None:
         modes = ["all", "one", "off"]
@@ -922,6 +1001,8 @@ class App:
             self.toggle_resume_autoplay()
         elif key == ord("v"):
             self.cycle_visual_style()
+        elif key == ord("N"):
+            self.cycle_nostalgia_profile()
         elif key == ord("i"):
             self.about_open = True
         elif key == ord("x"):
@@ -1001,6 +1082,15 @@ class App:
         key = normalize_hotkey(key)
         if key in (ord("q"), 27, ord("o")):
             self.browser_open = False
+        elif key == ord("g") and self.browser_drives:
+            first_drive_idx = 2
+            if self.browser_selected < first_drive_idx or self.browser_selected >= first_drive_idx + len(self.browser_drives):
+                self.browser_selected = first_drive_idx
+            else:
+                rel = self.browser_selected - first_drive_idx
+                self.browser_selected = first_drive_idx + ((rel + 1) % len(self.browser_drives))
+            drive = self.browser_items[self.browser_selected]
+            self.status = f"Drive picker: {drive.drive}"
         elif key in (curses.KEY_UP, ord("k")):
             self.browser_selected = max(0, self.browser_selected - 1)
         elif key in (curses.KEY_DOWN, ord("j")):
@@ -1123,6 +1213,9 @@ class App:
         if info_h > 12:
             vis = f"visual: {VISUAL_STYLES[self.visual_style_index]}"
             self.add(info_y + 11, x + 2, vis[: w - 4], color(7))
+        if info_h > 13:
+            nost = f"ностальгия: {NOSTALGIA_PROFILES[self.nostalgia_profile_index][1]}"
+            self.add(info_y + 12, x + 2, nost[: w - 4], color(7))
 
     def draw_vu(self, y: int, x: int, h: int, w: int) -> None:
         if h < 6 or w < 46:
@@ -1453,6 +1546,7 @@ class App:
             "[m] Mute",
             "[u] Resume",
             "[v] Visual",
+            "[N] Nostalgia",
             "[i] About",
             "[x] DSP mode",
             "[b/B] Bass",
@@ -1493,7 +1587,7 @@ class App:
         w = min(width - 6, max(64, width * 3 // 4))
         y = (height - h) // 2
         x = (width - w) // 2
-        self.box(y, x, h, w, " file browser: Insert mark, a add marked, Space add+play ")
+        self.box(y, x, h, w, " file browser: g drives, Insert mark, a add marked, Space add+play ")
         header = f"{self.browser_path}  marked:{len(self.browser_marked)}"
         self.add(y + 1, x + 2, header[: w - 4], color(2) | curses.A_BOLD)
         visible = h - 4
@@ -1600,6 +1694,7 @@ class App:
     def loop(self) -> None:
         install_shutdown_signal_handlers()
         self.setup()
+        self.show_boot_screen()
         self.restore_last_session_playback()
         try:
             while self.running:

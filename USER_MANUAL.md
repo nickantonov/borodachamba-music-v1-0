@@ -53,6 +53,7 @@ python borodachamba_player.py ~/Music/track.mp3
 - `m` — mute on/off
 - `u` — resume autoplay on/off
 - `v` — смена визуализации (10 стилей)
+- `N` — переключение nostalgia-профиля (`off/cassette/cassette deck/reel tape/vinyl`)
 
 ### Звук и эффекты
 
@@ -78,6 +79,7 @@ python borodachamba_player.py ~/Music/track.mp3
 ## 4) Файловый браузер
 
 - `Insert` — отметить/снять отметку файла/папки
+- `g` — быстрый переход/переключение между дисками (`DRV`) в Windows
 - `a` — добавить отмеченные
 - `Space` — добавить и сразу играть
 - `Enter`:

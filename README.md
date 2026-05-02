@@ -38,6 +38,7 @@ python borodachamba_player.py ~/Music/track.mp3
 - `Space` - play/pause; в браузере добавить выбранный файл/папку и сразу играть
 - `Insert` - отметить/снять отметку с файла или папки в браузере; `a` и `Space` работают со всеми отмеченными
 - В Windows в браузере доступны записи `DRV`, чтобы быстро переходить на другой диск (например флешка `E:`)
+- `g` в браузере - быстрый переход/переключение между дисками (`DRV`)
 - `s` - stop
 - `n` / `p` - следующий / предыдущий трек
 - `Left` / `Right` - перемотка -5s / +5s
@@ -46,6 +47,7 @@ python borodachamba_player.py ~/Music/track.mp3
 - `m` - mute on/off
 - `u` - resume autoplay on/off
 - `v` - смена визуализации (10 стилей)
+- `N` - nostalgia profile (`off/cassette/cassette deck/reel tape/vinyl`)
 - `i` - окно About
 - `+` / `-` - громкость
 - `<` / `>` - тон
