@@ -46,7 +46,7 @@ LOGO = [
     r"                                   BORODACHAMBA MUSIC v1.0                                    ",
 ]
 
-COPYRIGHT_TEXT = "Copyright (c) Borodachamba Studio"
+COPYRIGHT_TEXT = "Borodachamba Studio open-source by Nick Antonov (2000-2026)"
 LICENSE_TEXT = "Licensed under GNU GPL v3.0 only"
 
 

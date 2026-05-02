@@ -152,7 +152,7 @@ chmod +x build_portable_linux.sh
 ## 8) Версия
 
 - Product: `Borodachamba Music v1.0`
-- Copyright: `Copyright (c) Borodachamba Studio`
+- Copyright: `Borodachamba Studio open-source by Nick Antonov (2000-2026)`
 - License: `GPL-3.0-only` (GNU GPL v3.0 only)
 
 ## 9) Условия open-source

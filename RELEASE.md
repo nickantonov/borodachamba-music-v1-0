@@ -13,6 +13,7 @@
   - `CHANGELOG.md`
 - Лицензия/брендинг:
   - `LICENSE` (`GPL-3.0-only`)
+  - `Borodachamba Studio open-source by Nick Antonov (2000-2026)`
 
 ## 2) Сборка
 

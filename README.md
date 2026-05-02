@@ -82,4 +82,4 @@ python borodachamba_player.py ~/Music/track.mp3
 
 ## Copyright
 
-Copyright (c) Borodachamba Studio
+Borodachamba Studio open-source by Nick Antonov (2000-2026)
