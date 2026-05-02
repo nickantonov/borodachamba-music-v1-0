@@ -1133,7 +1133,7 @@ class App:
         self.vu.step(self.engine.is_playing(), self.volume, self.dsp)
         self.draw_top(width)
         body_top = 9
-        controls_h = 7
+        controls_h = 8
         self.draw_playlist(body_top, height - controls_h - body_top - 1, width // 2 - 1)
         self.draw_right(body_top, height - controls_h - body_top - 1, width // 2, width - width // 2)
         self.draw_controls(height - controls_h, controls_h, width)
@@ -1569,18 +1569,28 @@ class App:
         self.slider(y + 3, slider_positions[1][0], slider_positions[1][1], "TONE", self.tone, -12, 12)
         self.slider(y + 3, slider_positions[2][0], slider_positions[2][1], "DSP", self.dsp, 0, 12)
 
-        help_text = HELP
         max_w = max(10, w - 4)
-        if len(help_text) <= max_w:
-            self.add(y + 4, 2, help_text, color(7))
-            return
-        split_at = help_text.rfind("  ", 0, max_w)
-        if split_at == -1:
-            split_at = max_w
-        line1 = help_text[:split_at].rstrip()
-        line2 = help_text[split_at:].strip()
-        self.add(y + 4, 2, line1[:max_w], color(7))
-        self.add(y + 5, 2, line2[:max_w], color(7))
+        max_help_lines = max(1, h - 5)
+        chunks = [part.strip() for part in HELP.split("  ") if part.strip()]
+        help_lines: list[str] = []
+        current = ""
+        for chunk in chunks:
+            candidate = chunk if not current else f"{current}  {chunk}"
+            if len(candidate) <= max_w:
+                current = candidate
+                continue
+            if current:
+                help_lines.append(current)
+            current = chunk
+        if current:
+            help_lines.append(current)
+        if len(help_lines) > max_help_lines:
+            head = help_lines[: max_help_lines - 1]
+            tail = "  ".join(help_lines[max_help_lines - 1 :])
+            head.append(tail)
+            help_lines = head
+        for idx, line in enumerate(help_lines[:max_help_lines]):
+            self.add(y + 4 + idx, 2, line[:max_w], color(7))
 
     def draw_browser(self, height: int, width: int) -> None:
         h = min(height - 4, max(12, height * 3 // 4))
