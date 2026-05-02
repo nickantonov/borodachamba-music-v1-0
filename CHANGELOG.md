@@ -12,7 +12,7 @@
 - Bass Boost (on/off + шаговое усиление).
 - EQ пресеты + tone control.
 - Ретро VU-индикатор в стиле кассетной деки.
-- About/License окно с offline key вводом.
+- About окно с информацией о проекте и лицензии.
 - Скрипты portable сборки для Windows и Linux.
 
 ## Unreleased
